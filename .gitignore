@@ -1,0 +1,12 @@
+.DS_Store
+*.retry
+*.log
+
+# Editor / tooling
+.vscode/
+.idea/
+
+# Python caches
+__pycache__/
+*.pyc
+

@@ -1,0 +1,79 @@
+---
+# defaults/main.yml — docker_engine
+
+## Legacy cleanup
+docker_engine_old_docker:
+  - docker
+  - docker-engine
+  - docker.io
+  - containerd
+  - runc
+  - docker-compose
+  - docker-compose-v2
+  - docker-doc
+  - podman-docker
+
+## Repo / keyring
+docker_engine_apt_key_url: "https://download.docker.com/linux/ubuntu/gpg"
+
+## Map kernel-reported architectures to Docker’s APT arch tags
+docker_engine_arch_map:
+  x86_64: amd64
+  amd64: amd64
+  aarch64: arm64
+  arm64: arm64
+  armv7l: armhf
+  armhf: armhf
+
+## Final repo arch used in apt_repository
+docker_engine_repo_arch: "{{ docker_engine_arch_map.get(ansible_architecture, 'amd64') }}"
+
+## Packages
+docker_engine_packages:
+  - ca-certificates
+  - curl
+  - gnupg
+  - lsb-release
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+  - python3-docker
+  - python3-jsondiff
+  - python3-yaml
+
+## Host directories
+docker_engine_stacks_dir: "/opt/stacks"
+
+## Users / groups
+docker_engine_group: "docker"
+docker_engine_gid: 3000
+docker_engine_users:
+  - jarvis
+
+## Docker daemon.json management
+docker_engine_manage_daemon_json: true
+docker_engine_daemon_config:
+  log-driver: "json-file"
+  log-opts:
+    max-size: "30m"
+    max-file: "3"
+  live-restore: true
+  default-address-pools:
+    - base: "172.31.0.0/16"
+      size: 24
+
+## Networks
+docker_engine_networks:
+  - { name: "core", driver: "bridge" }
+  - { name: "proxy", driver: "bridge" }
+
+## docker-tools stack
+docker_engine_stack_name: "docker-tools"
+docker_engine_dozzle_image: "amir20/dozzle:latest"
+docker_engine_dozzle_container_name: "dozzle"
+docker_engine_dozzle_restart: "unless-stopped"
+docker_engine_dozzle_port: 9081
+docker_engine_dozzle_enable_actions: true
+docker_engine_dozzle_enable_shell: true

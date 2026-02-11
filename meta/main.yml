@@ -1,0 +1,19 @@
+---
+galaxy_info:
+  role_name: docker_engine
+  author: khaosx
+  description: Install and configure Docker Engine on Ubuntu, manage daemon.json and networks, and deploy a small docker-tools stack (Dozzle) under /opt/stacks.
+  license: MIT
+  min_ansible_version: "2.12"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+  galaxy_tags:
+    - docker
+    - containers
+    - ubuntu
+    - system
+dependencies: []
+

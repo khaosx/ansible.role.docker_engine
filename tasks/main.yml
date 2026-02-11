@@ -1,0 +1,108 @@
+---
+
+- name: Uninstall legacy Docker packages
+  ansible.builtin.apt:
+    name: "{{ docker_engine_old_docker }}"
+    state: absent
+    force_apt_get: true
+
+- name: Ensure keyrings directory exists
+  ansible.builtin.file:
+    path: /usr/share/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Install Docker GPG key
+  ansible.builtin.get_url:
+    url: "{{ docker_engine_apt_key_url }}"
+    dest: /usr/share/keyrings/docker.asc
+    mode: "0644"
+
+- name: Add Docker APT repository
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [arch={{ docker_engine_repo_arch }} signed-by=/usr/share/keyrings/docker.asc]
+      https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+    filename: docker
+    state: present
+    update_cache: false
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+  changed_when: false
+
+- name: Create docker group
+  ansible.builtin.group:
+    name: "{{ docker_engine_group }}"
+    gid: "{{ docker_engine_gid }}"
+    system: true
+    state: present
+
+- name: Add users to docker group
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups: "{{ docker_engine_group }}"
+    append: true
+  loop: "{{ docker_engine_users }}"
+  when: docker_engine_users | length > 0
+
+- name: Install Docker Engine and related packages (latest stable)
+  ansible.builtin.apt:
+    name: "{{ docker_engine_packages }}"
+    state: present
+  tags: ['docker', 'install']
+
+- name: Ensure /etc/docker exists
+  ansible.builtin.file:
+    path: /etc/docker
+    state: directory
+    mode: "0755"
+  when: docker_engine_manage_daemon_json | bool
+  tags: ['docker', 'fixes']
+
+- name: Configure Docker daemon.json
+  ansible.builtin.copy:
+    dest: /etc/docker/daemon.json
+    content: >-
+      {{
+        docker_engine_daemon_config
+        | combine({'min-api-version': '1.24'}, recursive=True)
+        | to_nice_json
+      }}
+    mode: '0644'
+  when: docker_engine_manage_daemon_json | bool
+  notify: Restart Docker
+  tags: ['docker', 'fixes']
+
+- name: Ensure Docker service is enabled and started
+  ansible.builtin.service:
+    name: docker
+    enabled: true
+    state: started
+
+- name: Wait for Docker socket to appear
+  ansible.builtin.wait_for:
+    path: /var/run/docker.sock
+    timeout: 30
+
+- name: Ensure docker networks exist
+  community.docker.docker_network:
+    name: "{{ item.name }}"
+    state: present
+    driver: "{{ item.driver | default('bridge') }}"
+  loop: "{{ docker_engine_networks }}"
+  when: docker_engine_networks | length > 0
+
+- name: Ensure Docker stacks directory exists
+  ansible.builtin.file:
+    path: "{{ docker_engine_stacks_dir }}"
+    state: directory
+    owner: root
+    group: "{{ docker_engine_group }}"
+    mode: "2775"
+  tags: ['docker', 'dirs']
+
+- name: Deploy docker-tools stack
+  ansible.builtin.import_tasks: dozzle.yml
+  tags: ['docker-tools']

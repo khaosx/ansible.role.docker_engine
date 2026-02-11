@@ -1,0 +1,12 @@
+services:
+  dozzle:
+    image: {{ docker_engine_dozzle_image | to_json }}
+    container_name: {{ docker_engine_dozzle_container_name | to_json }}
+    restart: {{ docker_engine_dozzle_restart | to_json }}
+    ports:
+      - {{ (docker_engine_dozzle_port | string ~ ":8080") | to_json }}
+    environment:
+      DOZZLE_ENABLE_ACTIONS: {{ (docker_engine_dozzle_enable_actions | bool) | ternary("true", "false") | to_json }}
+      DOZZLE_ENABLE_SHELL: {{ (docker_engine_dozzle_enable_shell | bool) | ternary("true", "false") | to_json }}
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
