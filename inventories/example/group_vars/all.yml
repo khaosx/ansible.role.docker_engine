@@ -1,9 +1,0 @@
----
-# Controller-level shared values for example inventory.
-site_domain: example.internal
-
-# Role overrides passed from the controlling playbook inventory.
-docker_engine_users:
-  - jarvis
-docker_engine_stacks_dir: /opt/stacks
-docker_engine_stack_name: docker-tools
