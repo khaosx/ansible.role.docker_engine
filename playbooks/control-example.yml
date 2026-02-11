@@ -1,0 +1,9 @@
+---
+- name: Example controlling playbook for docker_engine
+  hosts: docker
+  become: true
+  gather_facts: true
+
+  roles:
+    - role: docker_engine
+      tags: [docker-engine]

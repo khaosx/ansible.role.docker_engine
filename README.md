@@ -1,65 +1,82 @@
 # ansible.role.docker-engine
 
-Install and configure Docker Engine on Ubuntu:
+Install and configure Docker Engine on Ubuntu hosts, then deploy a `docker-tools` compose stack under `/opt/stacks`.
 
-- Adds Docker's upstream APT repository and installs `docker-ce` + related packages
-- Manages `/etc/docker/daemon.json` (optional, enabled by default in this role)
-- Ensures the `docker` group exists with a fixed GID (defaults to `3000`) and adds nominated users to it
-- Ensures Docker networks exist
-- Creates a canonical stacks directory (defaults to `/opt/stacks`)
-- Deploys a small `docker-tools` stack (currently Dozzle) from a rendered compose file under `/opt/stacks/docker-tools`
+## Purpose
+
+This role:
+- Installs Docker Engine from Docker's upstream APT repo
+- Manages the Docker group (GID `3000`) and member users
+- Optionally manages `/etc/docker/daemon.json`
+- Ensures required Docker networks exist
+- Renders and deploys the `docker-tools` compose project
 
 ## Requirements
 
 - Ubuntu host
-- Play/role inclusion must run with `become: true`
-- Ansible collection: `community.docker`
+- `become: true` at play/role inclusion level
+- `community.docker` collection available
 
-## Role Variables
+## Role Execution Model
 
-Defaults live in `defaults/main.yml`.
+This role is intended to run subordinately from a controlling playbook.
 
-- `docker_engine_packages`: list of packages installed
-- `docker_engine_group`: docker group name (default: `docker`)
-- `docker_engine_gid`: docker group GID (default: `3000`)
-- `docker_engine_users`: users added to the docker group (default includes `jarvis`)
-- `docker_engine_manage_daemon_json`: whether to manage `/etc/docker/daemon.json`
-- `docker_engine_daemon_config`: daemon.json content (rendered as JSON)
-- `docker_engine_networks`: docker networks to create
-- `docker_engine_stacks_dir`: stacks root directory (default: `/opt/stacks`)
+The controlling playbook should own:
+- Baseline host provisioning
+- Shared inventory and vault structure
+- Global site variables
+- Role ordering and privilege model
 
-docker-tools stack (Dozzle):
+## Control Playbook Contract
 
-- `docker_engine_stack_name`: stack name (default: `docker-tools`)
-- `docker_engine_dozzle_image`: Dozzle image (default: `amir20/dozzle:latest`)
-- `docker_engine_dozzle_container_name`: container name (default: `dozzle`)
-- `docker_engine_dozzle_restart`: restart policy (default: `unless-stopped`)
-- `docker_engine_dozzle_port`: host port mapping to container `8080` (default: `9081`)
-- `docker_engine_dozzle_enable_actions`: enable Dozzle actions (default: `true`)
-- `docker_engine_dozzle_enable_shell`: enable Dozzle shell (default: `true`)
+Defaults for this role are in `defaults/main.yml`.
+Controller inventory/vault can override these values as needed.
 
-## Example Playbook
+### Expected upstream variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `docker_engine_users` | no | Users to add to the Docker group (default includes `jarvis`) |
+| `docker_engine_manage_daemon_json` | no | Toggle role management of `/etc/docker/daemon.json` |
+| `docker_engine_daemon_config` | no | Docker daemon config map rendered to JSON |
+| `docker_engine_networks` | no | Docker networks to enforce |
+| `docker_engine_stacks_dir` | no | Stack root directory (default `/opt/stacks`) |
+
+### Variable naming convention
+
+Role-owned variables use the `docker_engine_` prefix.
+
+## Key Variables
+
+- `docker_engine_group`: group name (default `docker`)
+- `docker_engine_gid`: fixed GID (default `3000`)
+- `docker_engine_packages`: Docker and supporting packages
+- `docker_engine_stack_name`: compose project name (default `docker-tools`)
+- `docker_engine_dozzle_image`: Dozzle image
+- `docker_engine_dozzle_port`: host port mapped to container `8080`
+
+## Example Controller Play
 
 ```yaml
 ---
-- name: Docker Engine
+- name: Docker hosts
   hosts: docker
   become: true
+  gather_facts: true
   roles:
     - role: docker_engine
 ```
 
-## What Gets Deployed
+## Resulting Host State
 
-After a run, you should have:
-
-- Docker Engine installed and running (`docker` service enabled + started)
-- Optional daemon config at `/etc/docker/daemon.json`
-- Networks defined in `docker_engine_networks`
-- A rendered compose file at `/opt/stacks/docker-tools/docker-compose.yml`
-- A `docker compose` project named `docker-tools` (includes a `dozzle` container listening on `9081`)
+After a successful run:
+- Docker packages are installed
+- Docker service is enabled and running
+- Optional daemon config exists at `/etc/docker/daemon.json`
+- Declared Docker networks are present
+- `/opt/stacks/docker-tools/docker-compose.yml` is rendered
+- `docker compose` project `docker-tools` is applied
 
 ## License
 
-MIT. See `LICENSE`.
-
+MIT
