@@ -77,3 +77,13 @@ docker_engine_dozzle_restart: "unless-stopped"
 docker_engine_dozzle_port: 9081
 docker_engine_dozzle_enable_actions: true
 docker_engine_dozzle_enable_shell: true
+
+# UFW profiles (role-owned)
+docker_engine_ufw_profiles_catalog:
+  - name: Dozzle
+    title: "Dozzle"
+    description: "Docker log viewer"
+    ports:
+      - "{{ docker_engine_dozzle_port }}/tcp"
+docker_engine_ufw_allow_applications:
+  - Dozzle

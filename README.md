@@ -9,6 +9,7 @@ This role:
 - Manages the Docker group (GID `3000`) and member users
 - Optionally manages `/etc/docker/daemon.json`
 - Ensures required Docker networks exist
+- Installs and allows the `Dozzle` UFW app profile
 - Renders and deploys the `docker-tools` compose project
 
 ## Requirements
@@ -16,6 +17,7 @@ This role:
 - Ubuntu host
 - `become: true` at play/role inclusion level
 - `community.docker` collection available
+- Role `ufw_profiles` available on the controller
 
 ## Role Execution Model
 

@@ -94,6 +94,14 @@
   loop: "{{ docker_engine_networks }}"
   when: docker_engine_networks | length > 0
 
+- name: UFW | install and allow docker_engine profiles
+  ansible.builtin.import_role:
+    name: ufw_profiles
+  vars:
+    ufw_profiles_catalog: "{{ docker_engine_ufw_profiles_catalog }}"
+    ufw_profiles_allow_applications: "{{ docker_engine_ufw_allow_applications }}"
+  when: docker_engine_ufw_allow_applications | length > 0
+
 - name: Ensure Docker stacks directory exists
   ansible.builtin.file:
     path: "{{ docker_engine_stacks_dir }}"
