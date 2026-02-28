@@ -1,5 +1,5 @@
 ---
-- name: Ensure stack directory exists
+- name: Dozzle | Ensure stack directory exists
   ansible.builtin.file:
     path: "{{ docker_engine_stacks_dir }}/{{ docker_engine_stack_name }}"
     state: directory
@@ -7,15 +7,16 @@
     group: "{{ docker_engine_group }}"
     mode: "2775"
 
-- name: Render docker-compose.yml
+- name: Dozzle | Render docker-compose definition
   ansible.builtin.template:
     src: docker-tools/docker-compose.yml.j2
     dest: "{{ docker_engine_stacks_dir }}/{{ docker_engine_stack_name }}/docker-compose.yml"
     owner: root
     group: "{{ docker_engine_group }}"
     mode: "0644"
+    backup: true
 
-- name: Deploy stack via Docker Compose v2
+- name: Dozzle | Deploy compose project
   community.docker.docker_compose_v2:
     project_name: "{{ docker_engine_stack_name }}"
     project_src: "{{ docker_engine_stacks_dir }}/{{ docker_engine_stack_name }}"

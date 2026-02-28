@@ -18,7 +18,9 @@ collections/
 !collections/requirements.yml
 
 # Exclude downloaded roles
-# Uncomment the line below if you download 3rd party roles into ./roles
+# Roles installed from requirements.yml go to .ansible/roles/ (already excluded above).
+# The ./roles/ directory contains only pre-graduation development roles and IS committed.
+# Do not uncomment the line below unless you intentionally change install behavior.
 # roles/*
 
 # -----------------------------------------------------------------------------
@@ -60,12 +62,14 @@ Thumbs.db
 # -----------------------------------------------------------------------------
 # Secrets & Credentials
 # -----------------------------------------------------------------------------
-# Prevent accidental commit of unencrypted secrets
+# Prevent accidental commit of unencrypted secrets and vault password files.
+# NOTE: group_vars/all/vault.yml is NOT excluded here — it is an encrypted
+# committed artifact. The encryption is the protection, not the gitignore.
 *.vault
 .vault_pass
 .ansible_vault
 secrets.yml
-vault.yml
+# vault.yml is intentionally NOT excluded — see note above
 
 # -----------------------------------------------------------------------------
 # SSH Keys

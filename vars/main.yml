@@ -1,0 +1,11 @@
+---
+__docker_engine_required_facts:
+  - "os_family"
+  - "distribution"
+  - "distribution_major_version"
+  - "distribution_version"
+  - "architecture"
+  - "distribution_release"
+
+__docker_engine_required_platform_vars:
+  - "__docker_engine_apt_repository"

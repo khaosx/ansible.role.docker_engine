@@ -1,0 +1,86 @@
+---
+argument_specs:
+  main:
+    short_description: Install and configure Docker Engine, daemon settings, networks, and docker-tools stack.
+    options:
+      docker_engine_old_docker:
+        description: Legacy Docker packages to remove before install.
+        type: list
+        elements: str
+      docker_engine_apt_key_url:
+        description: URL for Docker repository signing key.
+        type: str
+        default: "https://download.docker.com/linux/ubuntu/gpg"
+      docker_engine_arch_map:
+        description: Mapping from system architecture identifiers to Docker apt architecture tags.
+        type: dict
+      docker_engine_repo_arch:
+        description: Docker apt architecture tag used in repository definition.
+        type: str
+      docker_engine_packages:
+        description: Docker and supporting packages to install.
+        type: list
+        elements: str
+      docker_engine_stacks_dir:
+        description: Root directory for compose stack projects.
+        type: str
+        default: "/opt/stacks"
+      docker_engine_group:
+        description: Group name used for Docker access.
+        type: str
+        default: docker
+      docker_engine_gid:
+        description: Fixed GID for Docker group.
+        type: int
+        default: 3000
+      docker_engine_users:
+        description: Users to add to Docker group.
+        type: list
+        elements: str
+      docker_engine_manage_daemon_json:
+        description: Whether this role manages /etc/docker/daemon.json.
+        type: bool
+        default: true
+      docker_engine_daemon_config:
+        description: Docker daemon configuration map rendered as JSON.
+        type: dict
+      docker_engine_networks:
+        description: Docker networks that must exist.
+        type: list
+        elements: dict
+      docker_engine_stack_name:
+        description: Compose project name for docker-tools stack.
+        type: str
+        default: docker-tools
+      docker_engine_dozzle_image:
+        description: Dozzle container image reference.
+        type: str
+        default: "amir20/dozzle:latest"
+      docker_engine_dozzle_container_name:
+        description: Dozzle container name.
+        type: str
+        default: dozzle
+      docker_engine_dozzle_restart:
+        description: Dozzle container restart policy.
+        type: str
+        default: unless-stopped
+      docker_engine_dozzle_port:
+        description: Host port mapped to Dozzle container port 8080.
+        type: int
+        default: 9081
+      docker_engine_dozzle_enable_actions:
+        description: Enable Dozzle actions in UI.
+        type: bool
+        default: true
+      docker_engine_dozzle_enable_shell:
+        description: Enable Dozzle shell functionality.
+        type: bool
+        default: true
+      docker_engine_ufw_profiles_catalog:
+        description: UFW profile catalog passed to ufw_profiles role.
+        type: list
+        elements: dict
+      docker_engine_ufw_allow_applications:
+        description: UFW applications to allow via ufw_profiles role.
+        type: list
+        elements: str

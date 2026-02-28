@@ -1,0 +1,31 @@
+---
+- name: Set Vars | Ensure required facts are available
+  ansible.builtin.setup:
+    gather_subset: min
+  when: >-
+    not ansible_facts.keys() | list |
+    intersect(__docker_engine_required_facts) == __docker_engine_required_facts
+
+- name: Set Vars | Derive repository architecture
+  ansible.builtin.set_fact:
+    __docker_engine_repo_arch: "{{ docker_engine_repo_arch }}"
+
+- name: Set Vars | Load platform version specific variables
+  ansible.builtin.include_vars: "{{ __docker_engine_vars_file }}"
+  loop:
+    - "{{ ansible_facts['os_family'] }}.yml"
+    - "{{ ansible_facts['distribution'] }}.yml"
+    - "{{ ansible_facts['distribution'] }}_{{ ansible_facts['distribution_major_version'] }}.yml"
+    - "{{ ansible_facts['distribution'] }}_{{ ansible_facts['distribution_version'] }}.yml"
+  vars:
+    __docker_engine_vars_file: "{{ role_path }}/vars/{{ item }}"
+  when: __docker_engine_vars_file is file
+
+- name: Set Vars | Verify required platform variables are defined
+  ansible.builtin.assert:
+    that:
+      - __docker_engine_apt_repository is defined
+    fail_msg: >-
+      Platform variable loading failed for
+      {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}.
+      No matching vars file found in {{ role_path }}/vars/.

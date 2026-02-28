@@ -1,0 +1,4 @@
+---
+__docker_engine_apt_repository: >-
+  deb [arch={{ __docker_engine_repo_arch }} signed-by=/usr/share/keyrings/docker.asc]
+  https://download.docker.com/linux/debian {{ ansible_facts['distribution_release'] }} stable

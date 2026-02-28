@@ -1,45 +1,49 @@
 ---
+- name: Main | Load platform variables
+  ansible.builtin.import_tasks: set_vars.yml
 
-- name: Uninstall legacy Docker packages
+- name: Install | Remove legacy Docker packages
   ansible.builtin.apt:
     name: "{{ docker_engine_old_docker }}"
     state: absent
     force_apt_get: true
 
-- name: Ensure keyrings directory exists
+- name: Install | Ensure keyrings directory exists
   ansible.builtin.file:
     path: /usr/share/keyrings
     state: directory
+    owner: root
+    group: root
     mode: "0755"
 
-- name: Install Docker GPG key
+- name: Install | Download Docker GPG key
   ansible.builtin.get_url:
     url: "{{ docker_engine_apt_key_url }}"
     dest: /usr/share/keyrings/docker.asc
+    owner: root
+    group: root
     mode: "0644"
 
-- name: Add Docker APT repository
+- name: Install | Configure Docker APT repository
   ansible.builtin.apt_repository:
-    repo: >-
-      deb [arch={{ docker_engine_repo_arch }} signed-by=/usr/share/keyrings/docker.asc]
-      https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+    repo: "{{ __docker_engine_apt_repository }}"
     filename: docker
     state: present
     update_cache: false
 
-- name: Update apt cache
+- name: Install | Refresh apt cache
   ansible.builtin.apt:
     update_cache: true
   changed_when: false
 
-- name: Create docker group
+- name: Configure | Ensure Docker group exists
   ansible.builtin.group:
     name: "{{ docker_engine_group }}"
     gid: "{{ docker_engine_gid }}"
     system: true
     state: present
 
-- name: Add users to docker group
+- name: Configure | Ensure users are members of Docker group
   ansible.builtin.user:
     name: "{{ item }}"
     groups: "{{ docker_engine_group }}"
@@ -47,54 +51,57 @@
   loop: "{{ docker_engine_users }}"
   when: docker_engine_users | length > 0
 
-- name: Install Docker Engine and related packages (latest stable)
+- name: Install | Ensure Docker packages are installed
   ansible.builtin.apt:
     name: "{{ docker_engine_packages }}"
     state: present
-  tags: ['docker', 'install']
+  tags: ["docker_engine", "install"]
 
-- name: Ensure /etc/docker exists
+- name: Configure | Ensure Docker config directory exists
   ansible.builtin.file:
     path: /etc/docker
     state: directory
+    owner: root
+    group: root
     mode: "0755"
   when: docker_engine_manage_daemon_json | bool
-  tags: ['docker', 'fixes']
+  tags: ["docker_engine", "configure"]
 
-- name: Configure Docker daemon.json
-  ansible.builtin.copy:
+- name: Configure | Deploy daemon.json
+  ansible.builtin.template:
+    src: docker-daemon.json.j2
     dest: /etc/docker/daemon.json
-    content: >-
-      {{
-        docker_engine_daemon_config
-        | combine({'min-api-version': '1.24'}, recursive=True)
-        | to_nice_json
-      }}
-    mode: '0644'
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
   when: docker_engine_manage_daemon_json | bool
-  notify: Restart Docker
-  tags: ['docker', 'fixes']
+  notify: Docker_engine | Restart Docker service
+  tags: ["docker_engine", "configure"]
 
-- name: Ensure Docker service is enabled and started
-  ansible.builtin.service:
+- name: Service | Ensure Docker service is enabled and running
+  ansible.builtin.systemd:
     name: docker
     enabled: true
     state: started
+    daemon_reload: true
 
-- name: Wait for Docker socket to appear
+- name: Service | Wait for Docker socket
   ansible.builtin.wait_for:
     path: /var/run/docker.sock
     timeout: 30
 
-- name: Ensure docker networks exist
+- name: Configure | Ensure Docker networks exist
   community.docker.docker_network:
-    name: "{{ item.name }}"
+    name: "{{ item['name'] }}"
     state: present
-    driver: "{{ item.driver | default('bridge') }}"
+    driver: "{{ item['driver'] | default('bridge') }}"
   loop: "{{ docker_engine_networks }}"
+  loop_control:
+    label: "{{ item['name'] }}"
   when: docker_engine_networks | length > 0
 
-- name: UFW | install and allow docker_engine profiles
+- name: Firewall | Apply Docker Engine UFW profiles
   ansible.builtin.import_role:
     name: ufw_profiles
   vars:
@@ -102,15 +109,15 @@
     ufw_profiles_allow_applications: "{{ docker_engine_ufw_allow_applications }}"
   when: docker_engine_ufw_allow_applications | length > 0
 
-- name: Ensure Docker stacks directory exists
+- name: Configure | Ensure stack root directory exists
   ansible.builtin.file:
     path: "{{ docker_engine_stacks_dir }}"
     state: directory
     owner: root
     group: "{{ docker_engine_group }}"
     mode: "2775"
-  tags: ['docker', 'dirs']
+  tags: ["docker_engine", "directories"]
 
-- name: Deploy docker-tools stack
+- name: Deploy | Apply docker-tools stack
   ansible.builtin.import_tasks: dozzle.yml
-  tags: ['docker-tools']
+  tags: ["docker_engine", "docker_tools"]

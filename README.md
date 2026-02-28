@@ -1,84 +1,108 @@
-# ansible.role.docker-engine
+# Role: docker_engine
 
-Install and configure Docker Engine on Ubuntu hosts, then deploy a `docker-tools` compose stack under `/opt/stacks`.
+## Description
 
-## Purpose
-
-This role:
-- Installs Docker Engine from Docker's upstream APT repo
-- Manages the Docker group (GID `3000`) and member users
-- Optionally manages `/etc/docker/daemon.json`
-- Ensures required Docker networks exist
-- Installs and allows the `Dozzle` UFW app profile
-- Renders and deploys the `docker-tools` compose project
+Installs and configures Docker Engine on Debian/Ubuntu hosts, optionally manages `/etc/docker/daemon.json`, ensures required Docker networks exist, applies UFW profile rules for Dozzle, and deploys a docker-tools compose stack.
 
 ## Requirements
 
-- Ubuntu host
-- `become: true` at play/role inclusion level
+- Ansible >= 2.14
+- Target OS: Ubuntu, Debian
 - `community.docker` collection available
-- Role `ufw_profiles` available on the controller
+- `ufw_profiles` role available when `docker_engine_ufw_allow_applications` is non-empty
 
-## Role Execution Model
+## Privilege Escalation
 
-This role is intended to run subordinately from a controlling playbook.
+requires_become: true
 
-The controlling playbook should own:
-- Baseline host provisioning
-- Shared inventory and vault structure
-- Global site variables
-- Role ordering and privilege model
+## Role Variables
 
-## Control Playbook Contract
+| Variable | Default | Required | Description |
+|---|---|---|---|
+| `docker_engine_old_docker` | see defaults | No | Legacy Docker packages removed before install. |
+| `docker_engine_apt_key_url` | `https://download.docker.com/linux/ubuntu/gpg` | No | Docker repository signing key URL. |
+| `docker_engine_arch_map` | see defaults | No | Mapping of host architecture names to Docker apt architecture values. |
+| `docker_engine_repo_arch` | derived | No | Docker apt architecture used in repository stanza. |
+| `docker_engine_packages` | see defaults | No | Docker and helper packages to install. |
+| `docker_engine_stacks_dir` | `/opt/stacks` | No | Root directory for stack deployments. |
+| `docker_engine_group` | `docker` | No | Docker group name. |
+| `docker_engine_gid` | `3000` | No | Docker group GID. |
+| `docker_engine_users` | `['jarvis']` | No | Users added to Docker group. |
+| `docker_engine_manage_daemon_json` | `true` | No | Enable management of `/etc/docker/daemon.json`. |
+| `docker_engine_daemon_config` | see defaults | No | Daemon config rendered to JSON. |
+| `docker_engine_networks` | see defaults | No | Docker networks to enforce. |
+| `docker_engine_stack_name` | `docker-tools` | No | Compose project name. |
+| `docker_engine_dozzle_image` | `amir20/dozzle:latest` | No | Dozzle image reference. |
+| `docker_engine_dozzle_container_name` | `dozzle` | No | Dozzle container name. |
+| `docker_engine_dozzle_restart` | `unless-stopped` | No | Dozzle restart policy. |
+| `docker_engine_dozzle_port` | `9081` | No | Host port mapped to Dozzle `8080`. |
+| `docker_engine_dozzle_enable_actions` | `true` | No | Enable Dozzle actions. |
+| `docker_engine_dozzle_enable_shell` | `true` | No | Enable Dozzle shell. |
+| `docker_engine_ufw_profiles_catalog` | see defaults | No | UFW profile catalog sent to `ufw_profiles`. |
+| `docker_engine_ufw_allow_applications` | `['Dozzle']` | No | UFW applications allowed via `ufw_profiles`. |
 
-Defaults for this role are in `defaults/main.yml`.
-Controller inventory/vault can override these values as needed.
+## Outbound Artifacts
 
-### Expected upstream variables
+- Docker packages and service state (`docker` systemd unit)
+- Optional `/etc/docker/daemon.json`
+- Docker networks from `docker_engine_networks`
+- Stack directory at `{{ docker_engine_stacks_dir }}/{{ docker_engine_stack_name }}`
+- Compose file at `{{ docker_engine_stacks_dir }}/{{ docker_engine_stack_name }}/docker-compose.yml`
 
-| Variable | Required | Description |
-|---|---|---|
-| `docker_engine_users` | no | Users to add to the Docker group (default includes `jarvis`) |
-| `docker_engine_manage_daemon_json` | no | Toggle role management of `/etc/docker/daemon.json` |
-| `docker_engine_daemon_config` | no | Docker daemon config map rendered to JSON |
-| `docker_engine_networks` | no | Docker networks to enforce |
-| `docker_engine_stacks_dir` | no | Stack root directory (default `/opt/stacks`) |
+## Dependencies
 
-### Variable naming convention
+- Runtime role inclusion of `ufw_profiles` when firewall application list is non-empty
 
-Role-owned variables use the `docker_engine_` prefix.
+## Capabilities
 
-## Key Variables
+- Installs Docker Engine from Docker upstream apt repository
+- Removes legacy Docker packages before installation
+- Configures Docker daemon JSON and restarts service when changed
+- Ensures Docker networks exist
+- Deploys Dozzle via Docker Compose v2
+- Applies UFW application profile rules for Dozzle
 
-- `docker_engine_group`: group name (default `docker`)
-- `docker_engine_gid`: fixed GID (default `3000`)
-- `docker_engine_packages`: Docker and supporting packages
-- `docker_engine_stack_name`: compose project name (default `docker-tools`)
-- `docker_engine_dozzle_image`: Dozzle image
-- `docker_engine_dozzle_port`: host port mapped to container `8080`
+## Idempotency
 
-## Example Controller Play
+idempotent: true
+
+## Atomic
+
+atomic: false
+
+## Rollback
+
+No automated rollback is provided. Template tasks use `backup: true` for manual rollback support.
+
+## Required Credentials or Privileges
+
+- Root privilege escalation (`become: true`)
+
+## Check Mode Behavior
+
+No tasks are explicitly skipped in check mode.
+
+## Supported Platforms
+
+- Ubuntu
+- Debian
+
+## Example Playbook
 
 ```yaml
 ---
-- name: Docker hosts
-  hosts: docker
+- name: Configure Docker hosts
+  hosts: docker_hosts
+  gather_facts: false
   become: true
-  gather_facts: true
   roles:
-    - role: docker_engine
+    - role: khaosx.homelab.docker_engine
 ```
-
-## Resulting Host State
-
-After a successful run:
-- Docker packages are installed
-- Docker service is enabled and running
-- Optional daemon config exists at `/etc/docker/daemon.json`
-- Declared Docker networks are present
-- `/opt/stacks/docker-tools/docker-compose.yml` is rendered
-- `docker compose` project `docker-tools` is applied
 
 ## License
 
 MIT
+
+## Author
+
+khaosx

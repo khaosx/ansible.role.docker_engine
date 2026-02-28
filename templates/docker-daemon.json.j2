@@ -1,0 +1,1 @@
+{{ docker_engine_daemon_config | combine({'min-api-version': '1.24'}, recursive=true) | to_nice_json }}
